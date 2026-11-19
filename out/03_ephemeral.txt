@@ -1,0 +1,41 @@
+$ zkcli 1 ls /
+[skills, zookeeper]
+
+[окно 2] Connecting to localhost:2182
+[окно 2] Welcome to ZooKeeper!
+[окно 2] JLine support is enabled
+[окно 2] [zk: localhost:2182(CONNECTED) 0] Created /ephemeral
+[окно 2] [zk: localhost:2182(CONNECTED) 1] cZxid = 0x1100000008
+[окно 2] ctime = Thu Nov 19 23:57:50 GST 2026
+[окно 2] mZxid = 0x1100000008
+[окно 2] mtime = Thu Nov 19 23:57:50 GST 2026
+[окно 2] pZxid = 0x1100000008
+[окно 2] cversion = 0
+[окно 2] dataVersion = 0
+[окно 2] aclVersion = 0
+[окно 2] ephemeralOwner = 0x20000397c3f0000
+[окно 2] dataLength = 37
+[окно 2] numChildren = 0
+[окно 2] [zk: localhost:2182(CONNECTED) 2] 
+
+$ zkcli 1 ls /
+[ephemeral, skills, zookeeper]
+
+$ zkcli 1 get -s /ephemeral | grep -E "узел|ephemeralOwner"
+узел из второго окна
+ephemeralOwner = 0x20000397c3f0000
+
+$ docker exec zk2 pkill -9 -f ZooKeeperMain; t=$(date +%s.%N); echo "окно 2 закрыто в $(date +%T.%3N)"
+zkcli 1 ls /
+while zkcli 1 stat /ephemeral 2>&1 | grep -q ephemeralOwner; do sleep 0.5; done
+echo "узел исчез в $(date +%T.%3N), через $(echo "$(date +%s.%N) - $t" | bc | cut -c1-4) с после закрытия окна"
+окно 2 закрыто в 23:58:00.122
+[ephemeral, skills, zookeeper]
+узел исчез в 23:58:08.394, через 8.28 с после закрытия окна
+
+$ zkcli 1 ls /
+[skills, zookeeper]
+
+$ zkcli 1 stat /ephemeral
+Node does not exist: /ephemeral
+

@@ -1,0 +1,5 @@
+#!/bin/bash
+# zkcli N команда...: одна команда zkCli на сервере zkN, без служебного журнала клиента
+n=$1; shift
+docker exec zk$n timeout 20 zkCli.sh -timeout 5000 -server localhost:$((2180 + n)) "$@" 2>&1 |
+  grep -vE '^[0-9]{4}-[0-9]{2}-|^$|^WATCHER::|^WatchedEvent|^Connecting to'

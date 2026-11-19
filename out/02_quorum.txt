@@ -1,0 +1,55 @@
+$ zkstatus
+zk1: Mode: follower 
+zk2: Mode: follower 
+zk3: Mode: leader 
+
+$ docker compose stop zk3 2>&1 | tail -1; sleep 5
+ Container zk3  Stopped
+
+$ zkstatus
+zk1: Mode: follower 
+zk2: Mode: leader 
+zk3: контейнер остановлен
+
+$ zkcli 1 create /quorum 'запись без zk3'
+Created /quorum
+
+$ zkcli 2 get /quorum
+запись без zk3
+
+$ docker compose stop zk1 2>&1 | tail -1; sleep 5
+ Container zk1  Stopped
+
+$ zkstatus
+zk1: контейнер остановлен
+zk2: Error contacting service. It is probably not running. 
+zk3: контейнер остановлен
+
+$ docker exec zk2 bash -c 'echo srvr | nc -q 1 localhost 2182'
+This ZooKeeper instance is not currently serving requests
+
+$ time zkcli 2 get /quorum
+org.apache.zookeeper.ClientCnxn$EndOfStreamException: Unable to read additional data from server sessionid 0x0, likely server has closed socket
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doIO(ClientCnxnSocketNIO.java:77)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:356)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1290)
+KeeperErrorCode = ConnectionLoss for /quorum
+
+real	0m0,636s
+user	0m0,022s
+sys	0m0,013s
+
+$ docker compose start zk3 zk1 2>&1 | tail -2; t=$(date +%s); until [ $(zkstatus | grep -c Mode) = 3 ]; do sleep 1; done; echo "все три сервера в ансамбле через $(($(date +%s) - t)) с"
+ Container zk1  Started
+ Container zk3  Started
+все три сервера в ансамбле через 4 с
+
+$ zkstatus
+zk1: Mode: follower 
+zk2: Mode: leader 
+zk3: Mode: follower 
+
+$ zkcli 3 get /quorum
+запись без zk3
+
+$ zkcli 1 delete /quorum

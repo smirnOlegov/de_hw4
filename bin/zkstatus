@@ -1,0 +1,8 @@
+#!/bin/bash
+# роль каждого сервера ансамбля по zkServer.sh status
+for n in 1 2 3; do
+  if [ "$(docker inspect -f '{{.State.Running}}' zk$n 2>/dev/null)" != true ]; then
+    echo "zk$n: контейнер остановлен"; continue
+  fi
+  echo "zk$n: $(docker exec zk$n zkServer.sh status 2>&1 | grep -E '^Mode|^Error' | tr '\n' ' ')"
+done

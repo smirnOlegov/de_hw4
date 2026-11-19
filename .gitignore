@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+/data/
+/disks/
+zk*/data/*/version-2/
+zk*/data/*/zookeeper_server.pid
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.tex
+zk*/data/myid

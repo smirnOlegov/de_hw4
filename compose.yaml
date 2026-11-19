@@ -1,0 +1,50 @@
+x-zk: &zk
+  image: zookeeper:3.9.6
+  restart: "no"
+  environment:
+    TZ: Asia/Dubai
+
+services:
+  zk1:
+    <<: *zk
+    container_name: zk1
+    hostname: zk1
+    ports: ["2181:2181"]
+    volumes:
+      - ./zk1/conf/zoo.cfg:/conf/zoo.cfg:ro
+      - ./zk1/data:/data
+  zk2:
+    <<: *zk
+    container_name: zk2
+    hostname: zk2
+    ports: ["2182:2182"]
+    volumes:
+      - ./zk2/conf/zoo.cfg:/conf/zoo.cfg:ro
+      - ./zk2/data:/data
+  zk3:
+    <<: *zk
+    container_name: zk3
+    hostname: zk3
+    ports: ["2183:2183"]
+    volumes:
+      - ./zk3/conf/zoo.cfg:/conf/zoo.cfg:ro
+      - ./zk3/data:/data
+
+  rustfs:
+    image: rustfs/rustfs:1.0.1
+    container_name: rustfs-hw4
+    user: "1000:1000"
+    ports:
+      - "9100:9000"
+      - "9101:9001"
+    environment:
+      RUSTFS_VOLUMES: "/disks/disk{1...4}"
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_UNSAFE_BYPASS_DISK_CHECK: "true"
+    volumes:
+      - ./disks/disk1:/disks/disk1
+      - ./disks/disk2:/disks/disk2
+      - ./disks/disk3:/disks/disk3
+      - ./disks/disk4:/disks/disk4

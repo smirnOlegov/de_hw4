@@ -1,0 +1,96 @@
+$ docker compose up -d 2>&1 | grep Started; until [ $(zkstatus | grep -c Mode) = 3 ]; do sleep 1; done
+ Container zk1  Started
+ Container zk2  Started
+ Container zk3  Started
+
+$ docker compose ps --format "table {{.Name}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+NAME         IMAGE                 STATUS          PORTS
+rustfs-hw4   rustfs/rustfs:1.0.1   Up 19 minutes   0.0.0.0:9100->9000/tcp, [::]:9100->9000/tcp, 0.0.0.0:9101->9001/tcp, [::]:9101->9001/tcp
+zk1          zookeeper:3.9.6       Up 4 seconds    2888/tcp, 3888/tcp, 0.0.0.0:2181->2181/tcp, [::]:2181->2181/tcp, 8080/tcp
+zk2          zookeeper:3.9.6       Up 4 seconds    2181/tcp, 2888/tcp, 3888/tcp, 8080/tcp, 0.0.0.0:2182->2182/tcp, [::]:2182->2182/tcp
+zk3          zookeeper:3.9.6       Up 4 seconds    2181/tcp, 2888/tcp, 3888/tcp, 8080/tcp, 0.0.0.0:2183->2183/tcp, [::]:2183->2183/tcp
+
+$ docker exec zk1 bash -c "echo JAVA_HOME=\$JAVA_HOME; java -version 2>&1 | head -1"
+JAVA_HOME=/opt/java/openjdk
+openjdk version "17.0.21" 2026-10-20
+
+$ for n in 1 2 3; do docker inspect -f "{{.Name}}: {{join .Config.Cmd \" \"}}" zk$n; done
+/zk1: zkServer.sh start-foreground
+/zk2: zkServer.sh start-foreground
+/zk3: zkServer.sh start-foreground
+
+$ for n in 1 2 3; do echo "--- zk$n/conf/zoo.cfg"; cat zk$n/conf/zoo.cfg; done
+--- zk1/conf/zoo.cfg
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir=/data/zk1
+clientPort=2181
+admin.enableServer=false
+4lw.commands.whitelist=srvr,stat,mntr,ruok
+server.1=zk1:2888:3888
+server.2=zk2:2889:3889
+server.3=zk3:2890:3890
+--- zk2/conf/zoo.cfg
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir=/data/zk2
+clientPort=2182
+admin.enableServer=false
+4lw.commands.whitelist=srvr,stat,mntr,ruok
+server.1=zk1:2888:3888
+server.2=zk2:2889:3889
+server.3=zk3:2890:3890
+--- zk3/conf/zoo.cfg
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir=/data/zk3
+clientPort=2183
+admin.enableServer=false
+4lw.commands.whitelist=srvr,stat,mntr,ruok
+server.1=zk1:2888:3888
+server.2=zk2:2889:3889
+server.3=zk3:2890:3890
+
+$ diff zk1/conf/zoo.cfg zk2/conf/zoo.cfg; diff zk1/conf/zoo.cfg zk3/conf/zoo.cfg
+4,5c4,5
+< dataDir=/data/zk1
+< clientPort=2181
+---
+> dataDir=/data/zk2
+> clientPort=2182
+4,5c4,5
+< dataDir=/data/zk1
+< clientPort=2181
+---
+> dataDir=/data/zk3
+> clientPort=2183
+$ for n in 1 2 3; do echo "zk$n/data/zk$n/myid: $(cat zk$n/data/zk$n/myid)"; done
+zk1/data/zk1/myid: 1
+zk2/data/zk2/myid: 2
+zk3/data/zk3/myid: 3
+
+$ for n in 1 2 3; do echo "--- zk$n"; docker exec zk$n zkServer.sh status 2>&1; done
+--- zk1
+ZooKeeper JMX enabled by default
+Using config: /conf/zoo.cfg
+Client port found: 2181. Client address: localhost. Client SSL: false.
+Mode: follower
+--- zk2
+ZooKeeper JMX enabled by default
+Using config: /conf/zoo.cfg
+Client port found: 2182. Client address: localhost. Client SSL: false.
+Mode: follower
+--- zk3
+ZooKeeper JMX enabled by default
+Using config: /conf/zoo.cfg
+Client port found: 2183. Client address: localhost. Client SSL: false.
+Mode: leader
+
+$ for n in 1 2 3; do echo "zk$n: $(docker exec zk$n bash -c "echo srvr | nc -q 1 localhost $((2180 + n))" | grep -E "Mode|Zxid|Node count" | tr "\n" " ")"; done
+zk1: Zxid: 0xe00000007 Mode: follower Node count: 36 
+zk2: Zxid: 0xe00000007 Mode: follower Node count: 36 
+zk3: Zxid: 0xf00000000 Mode: leader Node count: 36 
+

@@ -1,0 +1,5 @@
+00:00:55.531 scenario запущены coord-a (pid 213748) и coord-b (pid 213887), FENCING=1
+election: [69e6cec722f8402fb7b4ce67beb9d29b__lock__0000000000, b6e90c5e65a04f30a3c4de2b74ef0b6f__lock__0000000001]
+00:01:03.633 scenario лидер coord-a приостановлен: kill -STOP 213748
+00:01:37.952 scenario coord-b завершился, возобновляю coord-a: kill -CONT 213748
+00:01:39.983 scenario оба координатора завершились
